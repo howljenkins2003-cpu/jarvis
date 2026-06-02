@@ -1,13 +1,16 @@
 import pyaudio
 import wave
+import numpy as np
 
 CHUNK = 1024
 FORMAT = pyaudio.paInt16
 CHANNELS = 1#mono = 1 sterio = 2 we don't need sterio here.
 RATE = 16000 #whisper expects the audio of sample rate 16k
 OUTPUT_FILE = "input.wav"
+SILENCE_THRESHOLD = 1000
+SILENCE_DURATION = 2
 
-def record_audio(duration=5):
+def record_audio():
     p = pyaudio.PyAudio()
 
     stream = p.open(format=FORMAT,
@@ -16,14 +19,25 @@ def record_audio(duration=5):
                     input=True,
                     frames_per_buffer=CHUNK)
 
-    print(f"Recording for {duration} seconds...")
+    print("Listening...")
     frames = []
+    silent_chunks = 0
+    started = False #ignore the initial silence (waits for us to talk)
 
-    for _ in range(0, int(RATE / CHUNK * duration)):
+    while True:
         data = stream.read(CHUNK)
-        frames.append(data)
+        volume = np.sqrt(np.mean(np.frombuffer(data, dtype=np.int16).astype(np.float32)**2))
+        if volume > SILENCE_THRESHOLD:
+            started = True
+            silent_chunks = 0
+            frames.append(data)
+        elif started:
+            silent_chunks += 1
+            frames.append(data)
+            if silent_chunks > int(RATE / CHUNK * SILENCE_DURATION):
+                break
 
-    print("Done recording.")
+    print("Done.")
     stream.stop_stream()
     stream.close()
     p.terminate()
@@ -36,4 +50,3 @@ def record_audio(duration=5):
     wf.close()
 
     return OUTPUT_FILE
-

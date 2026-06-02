@@ -9,7 +9,7 @@ def main():
     while True:
         input("Press Enter to speak...")
         
-        audio_path = record_audio(duration=5)
+        audio_path = record_audio()
         
         print("Transcribing...")
         user_input = transcribe(audio_path)
@@ -23,4 +23,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
