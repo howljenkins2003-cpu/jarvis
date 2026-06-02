@@ -5,7 +5,7 @@ load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 MODEL = "llama-3.3-70b-versatile"
-WAKE_WORD = "jarvis"
+#WAKE_WORD = "jarvis"  #v3 feature
 
 TTS_LANGUAGE = "en"
 TTS_SLOW = False
