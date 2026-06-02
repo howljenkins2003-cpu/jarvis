@@ -1,16 +1,13 @@
 import whisper
 import os
+import warnings
+warnings.filterwarnings("ignore")
 
-model = whisper.load_model("base")
+model = whisper.load_model("base") # loading the whisper model
 
 def transcribe(audio_path):
-    result = model.transcribe(audio_path)
-    os.remove(audio_path)
+    result = model.transcribe(audio_path) # transcribe the audio recorded from it's audio path provided from listner.py
+    os.remove(audio_path) # to delete the file after transcribing.
     return result["text"].strip()
 
 
-if __name__ == "__main__":
-    from listener import record_audio
-    path = record_audio(duration=5)
-    text = transcribe(path)
-    print(f"You said: {text}")
