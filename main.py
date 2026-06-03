@@ -6,8 +6,6 @@ sys.stderr = open(os.devnull, 'w')
 import pyaudio
 sys.stderr = stderr # to mute the warnings in the terminal.
 
-
-
 from modules.listener import record_audio
 from modules.stt import transcribe
 from modules.brain import think
