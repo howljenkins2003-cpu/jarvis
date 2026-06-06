@@ -27,7 +27,7 @@ def jarvis_loop():
         user_input = transcribe(audio_path)
         print(f"You: {user_input}")
 
-        if any(word in user_input.lower() for word in ["exit", "goodbye", "shut down", "shutdown"]):
+        if "jarvis exit" in user_input.lower() or "jarvis shutdown" in user_input.lower(): 
             print("Jarvis: Goodbye.")
             speak("Goodbye.")
             stop_event.set()
