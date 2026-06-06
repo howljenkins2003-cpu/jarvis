@@ -1,10 +1,8 @@
 import sys
-import math
 import threading
-from PyQt6.QtWidgets import QApplication, QWidget
-from PyQt6.QtCore import Qt, QTimer, QPointF
-from PyQt6.QtGui import QPainter, QRadialGradient, QColor, QPen, QConicalGradient
-from PyQt6.QtCore import pyqtSignal, QObject
+from PyQt6.QtWidgets import QApplication, QWidget, QMenu
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
+from PyQt6.QtGui import QPainter, QRadialGradient, QColor, QPen, QAction
 
 COLORS = {
     "idle":      {"core": "#FF6000", "mid": "#CC3000", "glow": "#FF2200", "ring": "#FF4400"},
@@ -22,6 +20,8 @@ SPEEDS = {
 
 class OrbSignals(QObject):
     state_changed = pyqtSignal(str)
+    listen_triggered = pyqtSignal()
+    quit_triggered = pyqtSignal()
 
 class OrbWidget(QWidget):
     def __init__(self, signals):
@@ -53,6 +53,19 @@ class OrbWidget(QWidget):
     def _on_state_changed(self, state):
         self.state = state
 
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.signals.listen_triggered.emit()
+        elif event.button() == Qt.MouseButton.RightButton:
+            menu = QMenu(self)
+            listen_action = QAction("Listen", self)
+            quit_action = QAction("Quit", self)
+            listen_action.triggered.connect(self.signals.listen_triggered.emit)
+            quit_action.triggered.connect(self.signals.quit_triggered.emit)
+            menu.addAction(listen_action)
+            menu.addAction(quit_action)
+            menu.exec(event.globalPosition().toPoint())
+
     def _animate(self):
         speed = SPEEDS[self.state]
         self.pulse += speed["pulse"] * self.pulse_dir
@@ -72,12 +85,10 @@ class OrbWidget(QWidget):
         cx, cy = 60, 60
         base_radius = 28 + 6 * self.pulse
 
-        # --- Outer dark circle background ---
         painter.setBrush(QColor(0, 0, 0, 180))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawEllipse(int(cx - 54), int(cy - 54), 108, 108)
 
-        # --- Outer glow ---
         outer_glow = QRadialGradient(cx, cy, 54)
         glow_color = QColor(colors["glow"])
         glow_color.setAlpha(int(60 + 80 * self.pulse))
@@ -86,19 +97,14 @@ class OrbWidget(QWidget):
         painter.setBrush(outer_glow)
         painter.drawEllipse(int(cx - 54), int(cy - 54), 108, 108)
 
-        # --- Rotating ring arcs ---
         pen = QPen(QColor(colors["ring"]))
         pen.setWidth(2)
+        ring_color = QColor(colors["ring"])
+        ring_color.setAlpha(int(120 + 100 * self.pulse))
+        pen.setColor(ring_color)
         painter.setPen(pen)
         painter.setBrush(Qt.BrushStyle.NoBrush)
 
-        ring_alpha = int(120 + 100 * self.pulse)
-        ring_color = QColor(colors["ring"])
-        ring_color.setAlpha(ring_alpha)
-        pen.setColor(ring_color)
-        painter.setPen(pen)
-
-        # Draw 3 arcs at different rotations
         for i in range(3):
             offset = self.angle + i * 120
             painter.save()
@@ -107,7 +113,6 @@ class OrbWidget(QWidget):
             painter.drawArc(-40, -40, 80, 80, 0, 120 * 16)
             painter.restore()
 
-        # Inner ring
         inner_color = QColor(colors["ring"])
         inner_color.setAlpha(int(80 + 60 * self.pulse))
         pen2 = QPen(inner_color)
@@ -121,7 +126,6 @@ class OrbWidget(QWidget):
             painter.drawArc(-28, -28, 56, 56, 0, 100 * 16)
             painter.restore()
 
-        # --- Core radial gradient ---
         core = QRadialGradient(cx, cy, base_radius)
         core.setColorAt(0.0, QColor("#FFFFFF"))
         core.setColorAt(0.2, QColor(colors["core"]))
@@ -134,7 +138,6 @@ class OrbWidget(QWidget):
             int(base_radius * 2), int(base_radius * 2)
         )
 
-        # --- Hot white center ---
         hot = QRadialGradient(cx, cy, 8)
         hot.setColorAt(0.0, QColor(255, 255, 255, 255))
         hot.setColorAt(0.5, QColor(255, 220, 100, 180))
@@ -142,19 +145,7 @@ class OrbWidget(QWidget):
         painter.setBrush(hot)
         painter.drawEllipse(cx - 8, cy - 8, 16, 16)
 
-
-def start_orb(signals):
-    app = QApplication.instance() or QApplication(sys.argv)
-    orb = OrbWidget(signals)
-    orb.show()
-    app.exec()
-
-
 orb_signals = OrbSignals()
 
 def set_state(state: str):
     orb_signals.state_changed.emit(state)
-
-def launch_orb():
-    t = threading.Thread(target=start_orb, args=(orb_signals,), daemon=True)
-    t.start()

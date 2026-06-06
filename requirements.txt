@@ -3,6 +3,7 @@ torch
 groq
 openai-whisper
 pyaudio
-edge-tts
-pygame
+numpy
 python-dotenv
+edge-tts
+PyQt6

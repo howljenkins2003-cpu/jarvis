@@ -8,8 +8,7 @@ sys.stderr = stderr
 
 import threading
 from PyQt6.QtWidgets import QApplication
-from modules.tray import start_tray
-from modules.orb import OrbWidget, OrbSignals, set_state, orb_signals
+from modules.orb import OrbWidget, orb_signals, set_state
 from modules.listener import record_audio
 from modules.stt import transcribe
 from modules.brain import think
@@ -47,17 +46,14 @@ def jarvis_loop():
     print("Jarvis shutting down.")
 
 def main():
-    print("Jarvis is ready. Right-click the tray icon to activate.\n")
+    print("Jarvis is ready. Left-click orb to speak, right-click to quit.\n")
 
-    # Tray in background thread
-    tray_thread = threading.Thread(target=start_tray, args=(trigger, stop_event), daemon=True)
-    tray_thread.start()
+    orb_signals.listen_triggered.connect(lambda: trigger.set())
+    orb_signals.quit_triggered.connect(lambda: (stop_event.set(), trigger.set(), app.quit()))
 
-    # Jarvis loop in background thread
     loop_thread = threading.Thread(target=jarvis_loop, daemon=True)
     loop_thread.start()
 
-    # Orb runs on main thread
     app = QApplication(sys.argv)
     orb = OrbWidget(orb_signals)
     orb.show()
