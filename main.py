@@ -1,40 +1,38 @@
 import os
 import sys
-import signal
 os.environ["PYTHONWARNINGS"] = "ignore"
 stderr = sys.stderr
 sys.stderr = open(os.devnull, 'w')
 import pyaudio
 sys.stderr = stderr
 
-import threading
 from PyQt6.QtWidgets import QApplication
+from PyQt6.QtCore import QTimer
 from modules.orb import OrbWidget, orb_signals, set_state
 from modules.listener import record_audio
 from modules.stt import transcribe
 from modules.brain import think
 from modules.tts import speak
+import threading
 
-trigger = threading.Event()
 stop_event = threading.Event()
 
-def handle_signal(signum, frame):
-    trigger.set()
-
 def jarvis_loop():
+    set_state("listening")
     while not stop_event.is_set():
-        trigger.wait()
-        if stop_event.is_set():
-            break
-        trigger.clear()
-
-        set_state("listening")
         audio_path = record_audio()
 
         set_state("thinking")
         print("Transcribing...")
         user_input = transcribe(audio_path)
         print(f"You: {user_input}")
+
+        if any(word in user_input.lower() for word in ["exit", "goodbye", "shut down", "shutdown"]):
+            print("Jarvis: Goodbye.")
+            speak("Goodbye.")
+            stop_event.set()
+            orb_signals.quit_triggered.emit()
+            break
 
         print("Thinking...")
         response = think(user_input)
@@ -43,26 +41,23 @@ def jarvis_loop():
         set_state("speaking")
         speak(response)
 
-        set_state("idle")
+        set_state("listening")
 
     print("Jarvis shutting down.")
 
 def main():
-    print("Jarvis is ready. Press Ctrl+Shift+Space or left-click orb to speak.\n")
-
-    signal.signal(signal.SIGUSR1, handle_signal)
+    global app
+    print("Jarvis is online.\n")
 
     app = QApplication(sys.argv)
     orb = OrbWidget(orb_signals)
-
-    orb_signals.listen_triggered.connect(lambda: trigger.set())
-    orb_signals.quit_triggered.connect(lambda: (stop_event.set(), trigger.set(), app.quit()))
+    orb_signals.quit_triggered.connect(app.quit)
 
     loop_thread = threading.Thread(target=jarvis_loop, daemon=True)
     loop_thread.start()
 
     orb.show()
-    set_state("idle")
+    set_state("listening")
     app.exec()
 
 if __name__ == "__main__":
