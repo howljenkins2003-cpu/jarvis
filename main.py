@@ -1,5 +1,6 @@
 import os
 import sys
+import signal
 os.environ["PYTHONWARNINGS"] = "ignore"
 stderr = sys.stderr
 sys.stderr = open(os.devnull, 'w')
@@ -17,9 +18,10 @@ from modules.tts import speak
 trigger = threading.Event()
 stop_event = threading.Event()
 
-def jarvis_loop():
-    set_state("idle")
+def handle_signal(signum, frame):
+    trigger.set()
 
+def jarvis_loop():
     while not stop_event.is_set():
         trigger.wait()
         if stop_event.is_set():
@@ -46,7 +48,12 @@ def jarvis_loop():
     print("Jarvis shutting down.")
 
 def main():
-    print("Jarvis is ready. Left-click orb to speak, right-click to quit.\n")
+    print("Jarvis is ready. Press Ctrl+Shift+Space or left-click orb to speak.\n")
+
+    signal.signal(signal.SIGUSR1, handle_signal)
+
+    app = QApplication(sys.argv)
+    orb = OrbWidget(orb_signals)
 
     orb_signals.listen_triggered.connect(lambda: trigger.set())
     orb_signals.quit_triggered.connect(lambda: (stop_event.set(), trigger.set(), app.quit()))
@@ -54,9 +61,8 @@ def main():
     loop_thread = threading.Thread(target=jarvis_loop, daemon=True)
     loop_thread.start()
 
-    app = QApplication(sys.argv)
-    orb = OrbWidget(orb_signals)
     orb.show()
+    set_state("idle")
     app.exec()
 
 if __name__ == "__main__":
