@@ -131,5 +131,3 @@ jarvis/
 - Python 3.14+
 - Groq API key required (free tier available at console.groq.com)
 ```
-
-Replace your existing `README.md` with this, then commit and push.
