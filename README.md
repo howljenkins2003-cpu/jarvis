@@ -130,4 +130,3 @@ jarvis/
 - CPU only (no GPU required)
 - Python 3.14+
 - Groq API key required (free tier available at console.groq.com)
-```
