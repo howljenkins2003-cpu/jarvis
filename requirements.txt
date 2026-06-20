@@ -1,9 +1,7 @@
---extra-index-url https://download.pytorch.org/whl/cpu
-torch
+
 groq
-openai-whisper
 pyaudio
 numpy
 python-dotenv
-edge-tts
+fish-audio-sdk
 PyQt6

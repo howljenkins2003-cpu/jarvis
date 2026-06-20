@@ -1,13 +1,17 @@
-import whisper
 import os
-import warnings
-warnings.filterwarnings("ignore")
+from groq import Groq
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import GROQ_API_KEY
 
-model = whisper.load_model("base") # loading the whisper model
+client = Groq(api_key=GROQ_API_KEY)
 
 def transcribe(audio_path):
-    result = model.transcribe(audio_path) # transcribe the audio recorded from it's audio path provided from listner.py
-    os.remove(audio_path) # to delete the file after transcribing.
-    return result["text"].strip()
-
-
+    with open(audio_path, "rb") as f:
+        result = client.audio.transcriptions.create(
+            file=(audio_path, f.read()),
+            model="whisper-large-v3-turbo",
+            response_format="text"
+        )
+    os.remove(audio_path)
+    return result.strip()

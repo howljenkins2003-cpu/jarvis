@@ -27,19 +27,16 @@ def jarvis_loop():
         user_input = transcribe(audio_path)
         print(f"You: {user_input}")
 
-        if "jarvis exit" in user_input.lower() or "jarvis shutdown" in user_input.lower(): 
+        if "jarvis exit" in user_input.lower() or "jarvis shutdown" in user_input.lower():
             print("Jarvis: Goodbye.")
             speak("Goodbye.")
             stop_event.set()
             orb_signals.quit_triggered.emit()
             break
 
-        print("Thinking...")
-        response = think(user_input)
-        print(f"Jarvis: {response}")
-
+        print("Jarvis: ", end="", flush=True)
         set_state("speaking")
-        speak(response)
+        think(user_input)
 
         set_state("listening")
 
@@ -57,7 +54,6 @@ def main():
     loop_thread.start()
 
     orb.show()
-    set_state("listening")
     app.exec()
 
 if __name__ == "__main__":

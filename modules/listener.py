@@ -10,7 +10,7 @@ CHANNELS = 1 # mono for 1 sterio for 2
 RATE = 16000 # whisper expects in this  rate.
 OUTPUT_FILE = "input.wav"
 SILENCE_THRESHOLD = 1000
-SILENCE_DURATION = 2
+SILENCE_DURATION = 0.8
 
 def record_audio():
 
