@@ -3,5 +3,5 @@ groq
 pyaudio
 numpy
 python-dotenv
-fish-audio-sdk
+edge-tts
 PyQt6
