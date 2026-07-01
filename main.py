@@ -34,9 +34,12 @@ def jarvis_loop():
             orb_signals.quit_triggered.emit()
             break
 
-        print("Jarvis: ", end="", flush=True)
+        set_state("thinking")
+        response = think(user_input)
+        print(f"Jarvis: {response}")
+
         set_state("speaking")
-        think(user_input)
+        speak(response)
 
         set_state("listening")
 

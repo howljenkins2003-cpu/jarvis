@@ -1,66 +1,71 @@
 import sys
 import os
+import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from groq import Groq
 from config import GROQ_API_KEY, MODEL
-from modules.tts import speak_chunk
-import threading
-import queue
+from modules.tools import AVAILABLE_TOOLS, TOOL_SCHEMAS
 
 client = Groq(api_key=GROQ_API_KEY)
 
 SYSTEM_PROMPT = """You are Jarvis, a personal AI assistant.
 You are direct, efficient, and slightly cold. No unnecessary filler.
-Keep responses concise — you are speaking out loud, not writing an essay."""
+Keep responses concise — you are speaking out loud, not writing an essay.
+You have access to tools for checking system status. Use them when relevant."""
 
 conversation_history = []
 
 def think(user_input):
     conversation_history.append({"role": "user", "content": user_input})
 
-    stream = client.chat.completions.create(
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}] + conversation_history
+
+    response = client.chat.completions.create(
         model=MODEL,
-        messages=[{"role": "system", "content": SYSTEM_PROMPT}] + conversation_history,
-        stream=True
+        messages=messages,
+        tools=TOOL_SCHEMAS,
+        tool_choice="auto"
     )
 
-    full_response = ""
-    buffer = ""
-    tts_queue = queue.Queue()
-    done_event = threading.Event()
+    message = response.choices[0].message
 
-    def tts_worker():
-        while True:
-            chunk = tts_queue.get()
-            if chunk is None:
-                break
-            speak_chunk(chunk)
-            tts_queue.task_done()
-        done_event.set()
+    if message.tool_calls:
+        # Record the assistant's tool-call request in history
+        conversation_history.append({
+            "role": "assistant",
+            "content": message.content,
+            "tool_calls": [tc.model_dump() for tc in message.tool_calls]
+        })
 
-    worker = threading.Thread(target=tts_worker, daemon=True)
-    worker.start()
+        for tool_call in message.tool_calls:
+            func_name = tool_call.function.name
+            func = AVAILABLE_TOOLS.get(func_name)
 
-    for chunk in stream:
-        token = chunk.choices[0].delta.content
-        if token is None:
-            continue
-        buffer += token
-        full_response += token
-        print(token, end="", flush=True)
+            if func:
+                args = json.loads(tool_call.function.arguments or "{}")
+                if args is None:
+                    args = {}
+                result = func(**args)
+            else:
+                result = f"Error: tool '{func_name}' not found."
 
-        if any(p in buffer for p in ["!", "?", ","]) and len(buffer.split()) > 6:
-            tts_queue.put(buffer.strip())
-            buffer = ""
+            conversation_history.append({
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": str(result)
+            })
 
-    print()
-    if buffer.strip():
-        tts_queue.put(buffer.strip())
+        # Second call — Groq turns the tool result into a spoken reply
+        follow_up = client.chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "system", "content": SYSTEM_PROMPT}] + conversation_history
+        )
+        reply = follow_up.choices[0].message.content
+        conversation_history.append({"role": "assistant", "content": reply})
+        return reply
 
-    # Signal worker to stop and wait for it to finish
-    tts_queue.put(None)
-    done_event.wait()
-
-    conversation_history.append({"role": "assistant", "content": full_response})
-    return None
+    else:
+        reply = message.content
+        conversation_history.append({"role": "assistant", "content": reply})
+        return reply
