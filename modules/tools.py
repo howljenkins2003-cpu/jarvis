@@ -1,6 +1,6 @@
 import psutil
 
-def get_system_status():
+def get_system_status(**kwargs):
     cpu = psutil.cpu_percent(interval=0.5)
     ram = psutil.virtual_memory().percent
     battery = psutil.sensors_battery()
@@ -8,7 +8,7 @@ def get_system_status():
     result = f"CPU usage: {cpu}%. RAM usage: {ram}%."
     if battery:
         plugged = "plugged in" if battery.power_plugged else "on battery"
-        result += f" Battery at {battery.percent}%, {plugged}."
+        result += f" Battery at {round(battery.percent)}%, {plugged}."
     else:
         result += " No battery detected (desktop system)."
 

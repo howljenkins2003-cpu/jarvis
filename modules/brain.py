@@ -40,6 +40,7 @@ def think(user_input):
 
         for tool_call in message.tool_calls:
             func_name = tool_call.function.name
+            print(f"[TOOL CALLED] {func_name}")
             func = AVAILABLE_TOOLS.get(func_name)
 
             if func:
@@ -47,6 +48,7 @@ def think(user_input):
                 if args is None:
                     args = {}
                 result = func(**args)
+                print(f"[TOOL RESULT] {result}")
             else:
                 result = f"Error: tool '{func_name}' not found."
 
